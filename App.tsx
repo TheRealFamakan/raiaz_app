@@ -9,14 +9,14 @@ import AIAdvisor from './pages/AIAdvisor';
 import BarberDashboard from './pages/BarberDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import MyAccount from './pages/MyAccount';
-import { UserRole, Hairdresser, Booking, User, BookingStatus, Service } from './types';
+import { UserRole, Hairdresser, Booking, User, BookingStatus } from './types';
 import { MOCK_HAIRDRESSERS, MOCK_BOOKINGS } from './constants';
 
 const ADMIN_EMAILS = ['camarafamakan2@gmail.com', 'riaznajib1@gmail.com'];
 const ADMIN_PASSWORD = 'Admin@MyHairCut2025';
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('mhc_last_page') || 'home');
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('mhc_isLoggedIn') === 'true');
   const [userRole, setUserRole] = useState<UserRole | undefined>(() => (localStorage.getItem('mhc_userRole') as UserRole) || undefined);
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -42,20 +42,12 @@ const App: React.FC = () => {
     ];
   });
 
-  // Sauvegarde persistante à chaque modification
+  // Persistance automatique
   useEffect(() => {
+    localStorage.setItem('mhc_last_page', currentPage);
     localStorage.setItem('mhc_all_members', JSON.stringify(allMembers));
-  }, [allMembers]);
-
-  useEffect(() => {
     localStorage.setItem('mhc_bookings', JSON.stringify(bookings));
-  }, [bookings]);
-
-  useEffect(() => {
     localStorage.setItem('mhc_reviews', JSON.stringify(reviews));
-  }, [reviews]);
-
-  useEffect(() => {
     localStorage.setItem('mhc_isLoggedIn', isLoggedIn.toString());
     localStorage.setItem('mhc_userRole', userRole || '');
     if (currentUser) {
@@ -63,7 +55,7 @@ const App: React.FC = () => {
     } else {
       localStorage.removeItem('mhc_currentUser');
     }
-  }, [isLoggedIn, userRole, currentUser]);
+  }, [allMembers, bookings, reviews, isLoggedIn, userRole, currentUser, currentPage]);
 
   const handleUpdateMember = (updated: any) => {
     setAllMembers(prev => {
@@ -85,12 +77,10 @@ const App: React.FC = () => {
   };
 
   const handleDeleteMember = useCallback((id: string) => {
-    setAllMembers(prev => prev.filter(m => m.id !== id));
-    setBookings(prev => prev.filter(b => b.clientId !== id && b.barberId !== id));
-    
-    // Si l'admin se supprime lui-même (peu probable mais géré)
-    if (currentUser?.id === id) {
-      handleLogout();
+    if (window.confirm("Voulez-vous vraiment supprimer ce membre ? Cette action est irréversible.")) {
+      setAllMembers(prev => prev.filter(m => m.id !== id));
+      setBookings(prev => prev.filter(b => b.clientId !== id && b.barberId !== id));
+      if (currentUser?.id === id) handleLogout();
     }
   }, [currentUser]);
 
@@ -134,12 +124,7 @@ const App: React.FC = () => {
         isActive: true, 
         avatar: 'https://ui-avatars.com/api/?name=Riyaz+Nadjib&background=8B5CF6&color=fff' 
       };
-      
-      setAllMembers(prev => {
-        if (!prev.find(m => m.id === admin.id)) return [...prev, admin];
-        return prev;
-      });
-      
+      setAllMembers(prev => prev.find(m => m.id === admin.id) ? prev : [...prev, admin]);
       setIsLoggedIn(true);
       setUserRole(UserRole.ADMIN);
       setCurrentUser(admin);
@@ -150,7 +135,7 @@ const App: React.FC = () => {
     const found = allMembers.find(u => u.email.toLowerCase() === lowerEmail);
     if (found) {
       if (found.isActive === false) {
-        alert("Compte suspendu par l'administrateur.");
+        alert("Compte suspendu par l'administration.");
         return false;
       }
       setIsLoggedIn(true);
@@ -160,6 +145,7 @@ const App: React.FC = () => {
       return true;
     }
 
+    // Auto-enregistrement si non trouvé (pour la démo)
     const newUser = { 
       id: `u_${Date.now()}`, 
       name: email.split('@')[0], 
@@ -170,7 +156,6 @@ const App: React.FC = () => {
       walletBalance: 0, 
       services: role === 'BARBER' ? [] : undefined 
     };
-    
     handleUpdateMember(newUser);
     setIsLoggedIn(true);
     setUserRole(newUser.role);
@@ -181,46 +166,51 @@ const App: React.FC = () => {
 
   const barbers = allMembers.filter(m => m.role === UserRole.BARBER && m.isActive !== false) as Hairdresser[];
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'home': return <Home onNavigate={setCurrentPage} barbers={barbers} />;
-      case 'search': return <Search onNavigate={setCurrentPage} barbers={barbers} />;
-      case 'profile': 
-        const bid = localStorage.getItem('mhc_selected_barber_id');
-        const target = barbers.find(x => x.id === bid) || barbers[0];
-        return <Profile barber={target} reviews={reviews.filter(r => r.barberId === target?.id)} onAddBooking={(bk) => setBookings(p => [...p, bk])} currentUser={currentUser} />;
-      case 'barber-dashboard': 
-        return <BarberDashboard 
-          barber={allMembers.find(m => m.id === currentUser?.id) as Hairdresser} 
-          bookings={bookings.filter(b => b.barberId === currentUser?.id)} 
-          onUpdateBarber={handleUpdateMember} 
-          onUpdateBooking={handleUpdateBooking} 
-        />;
-      case 'admin-dashboard': 
-        return <AdminDashboard 
-          allMembers={allMembers} 
-          bookings={bookings} 
-          onDeleteMember={handleDeleteMember} 
-          onUpdateMember={handleUpdateMember} 
-        />;
-      case 'mon-compte': 
-        return <MyAccount 
-          user={allMembers.find(m => m.id === currentUser?.id)!} 
-          bookings={bookings.filter(b => b.clientId === currentUser?.id)} 
-          onUpdateProfile={handleUpdateMember} 
-          onAddReview={handleAddReview}
-          onCancelBooking={(id) => handleUpdateBooking(id, BookingStatus.CANCELLED)}
-        />;
-      case 'ai-advisor': return <AIAdvisor />;
-      case 'login': return <Login onLogin={handleLogin} />;
-      default: return <Home onNavigate={setCurrentPage} barbers={barbers} />;
-    }
-  };
-
   return (
     <div className="min-h-screen">
       <Navbar onNavigate={setCurrentPage} isLoggedIn={isLoggedIn} userRole={userRole} onLogout={handleLogout} />
-      <main className="animate-fadeIn pt-28 pb-10 min-h-[70vh]">{renderPage()}</main>
+      <main className="animate-fadeIn pt-24 pb-12 min-h-[80vh]">
+        {currentPage === 'home' && <Home onNavigate={setCurrentPage} barbers={barbers} />}
+        {currentPage === 'search' && <Search onNavigate={setCurrentPage} barbers={barbers} />}
+        {currentPage === 'profile' && (
+          <Profile 
+            barber={barbers.find(x => x.id === localStorage.getItem('mhc_selected_barber_id')) || barbers[0]} 
+            reviews={reviews.filter(r => r.barberId === localStorage.getItem('mhc_selected_barber_id'))} 
+            onAddBooking={(bk) => setBookings(p => [...p, bk])} 
+            currentUser={currentUser} 
+          />
+        )}
+        {currentPage === 'barber-dashboard' && (
+          <BarberDashboard 
+            barber={allMembers.find(m => m.id === currentUser?.id) as Hairdresser} 
+            bookings={bookings.filter(b => b.barberId === currentUser?.id)} 
+            onUpdateBarber={handleUpdateMember} 
+            onUpdateBooking={handleUpdateBooking} 
+          />
+        )}
+        {currentPage === 'admin-dashboard' && (
+          <AdminDashboard 
+            allMembers={allMembers} 
+            bookings={bookings} 
+            onDeleteMember={handleDeleteMember} 
+            onUpdateMember={handleUpdateMember} 
+          />
+        )}
+        {currentPage === 'mon-compte' && (
+          <MyAccount 
+            user={allMembers.find(m => m.id === currentUser?.id)!} 
+            bookings={bookings.filter(b => b.clientId === currentUser?.id)} 
+            onUpdateProfile={handleUpdateMember} 
+            onAddReview={handleAddReview}
+            onCancelBooking={(id) => handleUpdateBooking(id, BookingStatus.CANCELLED)}
+          />
+        )}
+        {currentPage === 'ai-advisor' && <AIAdvisor />}
+        {currentPage === 'login' && <Login onLogin={handleLogin} />}
+      </main>
+      <footer className="py-12 text-center opacity-40 text-[10px] font-black uppercase tracking-widest">
+        &copy; 2025 MyHairCut Morocco • Powered by Riyaz Innovation
+      </footer>
     </div>
   );
 };

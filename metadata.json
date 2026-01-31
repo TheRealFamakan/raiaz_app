@@ -3,6 +3,9 @@
     "camera",
     "geolocation"
   ],
-  "name": "Riaz_app",
-  "description": "app de coiffure"
+  "name": "MyHairCut - Pro Version",
+  "description": "Plateforme premium de coiffure à domicile au Maroc. Mise en relation, IA Advisor et gestion d'activité.",
+  "short_name": "MyHairCut",
+  "theme_color": "#8B5CF6",
+  "background_color": "#F0F2F5"
 }
