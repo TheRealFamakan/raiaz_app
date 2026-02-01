@@ -42,7 +42,6 @@ const App: React.FC = () => {
     ];
   });
 
-  // Persistance automatique
   useEffect(() => {
     localStorage.setItem('mhc_last_page', currentPage);
     localStorage.setItem('mhc_all_members', JSON.stringify(allMembers));
@@ -67,20 +66,24 @@ const App: React.FC = () => {
     });
     
     if (currentUser?.id === updated.id) {
+      setCurrentUser(prev => prev ? { ...prev, ...updated } : updated);
       if (updated.isActive === false) {
         handleLogout();
-      } else {
-        setCurrentUser(prev => prev ? { ...prev, ...updated } : updated);
-        setUserRole(updated.role);
+        alert("Votre compte a été suspendu.");
       }
     }
   };
 
   const handleDeleteMember = useCallback((id: string) => {
-    if (window.confirm("Voulez-vous vraiment supprimer ce membre ? Cette action est irréversible.")) {
-      setAllMembers(prev => prev.filter(m => m.id !== id));
-      setBookings(prev => prev.filter(b => b.clientId !== id && b.barberId !== id));
-      if (currentUser?.id === id) handleLogout();
+    // Cette fonction est appelée depuis AdminDashboard
+    setAllMembers(prev => {
+      const newList = prev.filter(m => m.id !== id);
+      return newList;
+    });
+    setBookings(prev => prev.filter(b => b.clientId !== id && b.barberId !== id));
+    
+    if (currentUser?.id === id) {
+      handleLogout();
     }
   }, [currentUser]);
 
@@ -109,6 +112,9 @@ const App: React.FC = () => {
     setUserRole(undefined);
     setCurrentUser(null);
     setCurrentPage('home');
+    localStorage.removeItem('mhc_isLoggedIn');
+    localStorage.removeItem('mhc_userRole');
+    localStorage.removeItem('mhc_currentUser');
   };
 
   const handleLogin = (role: 'CLIENT' | 'BARBER', email: string, password?: string): boolean => {
@@ -135,7 +141,7 @@ const App: React.FC = () => {
     const found = allMembers.find(u => u.email.toLowerCase() === lowerEmail);
     if (found) {
       if (found.isActive === false) {
-        alert("Compte suspendu par l'administration.");
+        alert("Ce compte est suspendu. Contactez le support.");
         return false;
       }
       setIsLoggedIn(true);
@@ -145,7 +151,6 @@ const App: React.FC = () => {
       return true;
     }
 
-    // Auto-enregistrement si non trouvé (pour la démo)
     const newUser = { 
       id: `u_${Date.now()}`, 
       name: email.split('@')[0], 
@@ -154,7 +159,8 @@ const App: React.FC = () => {
       isVerified: true, 
       isActive: true, 
       walletBalance: 0, 
-      services: role === 'BARBER' ? [] : undefined 
+      services: role === 'BARBER' ? [] : undefined,
+      gallery: role === 'BARBER' ? [] : undefined 
     };
     handleUpdateMember(newUser);
     setIsLoggedIn(true);
@@ -196,10 +202,10 @@ const App: React.FC = () => {
             onUpdateMember={handleUpdateMember} 
           />
         )}
-        {currentPage === 'mon-compte' && (
+        {currentPage === 'mon-compte' && currentUser && (
           <MyAccount 
-            user={allMembers.find(m => m.id === currentUser?.id)!} 
-            bookings={bookings.filter(b => b.clientId === currentUser?.id)} 
+            user={allMembers.find(m => m.id === currentUser.id)!} 
+            bookings={bookings.filter(b => b.clientId === currentUser.id)} 
             onUpdateProfile={handleUpdateMember} 
             onAddReview={handleAddReview}
             onCancelBooking={(id) => handleUpdateBooking(id, BookingStatus.CANCELLED)}

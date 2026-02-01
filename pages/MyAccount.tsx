@@ -16,8 +16,10 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
-  // États locaux pour le formulaire d'édition
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [editForm, setEditForm] = useState({
     name: user.name,
     bio: (user as Hairdresser).bio || '',
@@ -36,7 +38,27 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
       location: { ...user.location, address: editForm.address }
     });
     setIsEditing(false);
-    alert("Profil mis à jour !");
+    alert("Profil mis à jour avec succès !");
+  };
+
+  // Fonction pour gérer l'upload de photo locale
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      const currentGallery = (user as Hairdresser).gallery || [];
+      onUpdateProfile({
+        ...user,
+        gallery: [...currentGallery, base64String]
+      });
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsDataURL(file);
   };
 
   const addService = () => {
@@ -52,82 +74,71 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
     setEditForm({ ...editForm, newService: { name: '', price: '' } });
   };
 
-  const removeService = (id: string) => {
-    const services = ((user as Hairdresser).services || []).filter(s => s.id !== id);
-    onUpdateProfile({ ...user, services });
-  };
-
-  const addGalleryImage = () => {
-    if (!editForm.newImage) return;
-    const gallery = [...((user as Hairdresser).gallery || [])];
-    gallery.push(editForm.newImage);
-    onUpdateProfile({ ...user, gallery });
-    setEditForm({ ...editForm, newImage: '' });
-  };
-
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex flex-col lg:flex-row gap-12">
-        {/* SIDEBAR NAVIGATION */}
+        {/* SIDEBAR */}
         <div className="lg:w-80">
           <div className="glass p-8 rounded-[3rem] border-white/60 shadow-xl text-center sticky top-28">
-            <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} className="w-32 h-32 rounded-[2.5rem] mx-auto mb-6 object-cover shadow-2xl ring-4 ring-white" />
+            <div className="relative inline-block group">
+              <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} className="w-32 h-32 rounded-[2.5rem] mx-auto mb-6 object-cover shadow-2xl ring-4 ring-white" />
+            </div>
             <h2 className="text-xl font-black text-slate-900 truncate">{user.name}</h2>
             <p className="text-[10px] font-black text-violet-600 uppercase tracking-widest mt-2">{user.role}</p>
             
             <div className="mt-8 space-y-2">
-               <button onClick={() => setActiveTab('PROFIL')} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'PROFIL' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-white/50'}`}>Mon Profil</button>
-               <button onClick={() => setActiveTab('RESA')} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'RESA' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-white/50'}`}>Mes RDV</button>
+               <button onClick={() => setActiveTab('PROFIL')} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'PROFIL' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-white/50'}`}>Mon Profil</button>
+               <button onClick={() => setActiveTab('RESA')} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'RESA' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-white/50'}`}>Mes RDV</button>
                {user.role === UserRole.BARBER && (
                  <>
-                   <button onClick={() => setActiveTab('SERVICES')} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'SERVICES' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-white/50'}`}>Prestations</button>
-                   <button onClick={() => setActiveTab('GALLERY')} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'GALLERY' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-white/50'}`}>Portfolio</button>
+                   <button onClick={() => setActiveTab('SERVICES')} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'SERVICES' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-white/50'}`}>Prestations</button>
+                   <button onClick={() => setActiveTab('GALLERY')} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'GALLERY' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-white/50'}`}>Portfolio</button>
                  </>
                )}
             </div>
           </div>
         </div>
 
-        {/* CONTENT AREA */}
+        {/* CONTENT */}
         <div className="flex-1">
           {activeTab === 'PROFIL' && (
             <div className="glass p-10 rounded-[3rem] border-white/60 shadow-xl animate-fadeIn bg-white/40">
                <div className="flex justify-between items-center mb-10">
-                 <h2 className="text-2xl font-black text-slate-900 uppercase">Paramètres Personnels</h2>
+                 <h2 className="text-2xl font-black text-slate-900 uppercase">Informations personnelles</h2>
                  {!isEditing ? (
-                   <button onClick={() => setIsEditing(true)} className="bg-slate-900 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg">Modifier</button>
+                   <button onClick={() => setIsEditing(true)} className="bg-slate-900 text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase shadow-xl hover:scale-105 transition">Modifier</button>
                  ) : (
-                   <div className="flex gap-2">
-                     <button onClick={() => setIsEditing(false)} className="bg-slate-200 text-slate-600 px-6 py-2 rounded-xl text-[10px] font-black uppercase">Annuler</button>
-                     <button onClick={handleSaveProfile} className="bg-violet-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg">Enregistrer</button>
+                   <div className="flex gap-3">
+                     <button onClick={() => setIsEditing(false)} className="bg-slate-200 text-slate-600 px-6 py-3 rounded-xl text-[10px] font-black uppercase">Annuler</button>
+                     <button onClick={handleSaveProfile} className="bg-violet-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase shadow-xl">Sauvegarder</button>
                    </div>
                  )}
                </div>
                
                <div className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Nom complet</label>
-                      <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className={`w-full glass bg-white rounded-2xl px-6 py-4 font-bold border-2 transition ${isEditing ? 'border-violet-100' : 'border-transparent'}`} readOnly={!isEditing} />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Nom complet</label>
+                      <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className={`w-full glass bg-white rounded-2xl px-6 py-4 font-bold border-2 transition ${isEditing ? 'border-violet-100 ring-4 ring-violet-50' : 'border-transparent'}`} readOnly={!isEditing} />
                     </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Email (Non modifiable)</label>
-                      <input type="text" value={user.email} className="w-full glass bg-slate-50/50 rounded-2xl px-6 py-4 font-bold opacity-50 cursor-not-allowed" readOnly />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Email</label>
+                      <input type="text" value={user.email} className="w-full glass bg-slate-50/50 rounded-2xl px-6 py-4 font-bold opacity-50" readOnly />
                     </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Numéro de Téléphone</label>
-                      <input type="text" placeholder="+212 ..." value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className={`w-full glass bg-white rounded-2xl px-6 py-4 font-bold border-2 transition ${isEditing ? 'border-violet-100' : 'border-transparent'}`} readOnly={!isEditing} />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Téléphone de contact</label>
+                      <input type="text" placeholder="+212 ..." value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className={`w-full glass bg-white rounded-2xl px-6 py-4 font-bold border-2 transition ${isEditing ? 'border-violet-100 ring-4 ring-violet-50' : 'border-transparent'}`} readOnly={!isEditing} />
                     </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Adresse / Ville</label>
-                      <input type="text" placeholder="Ex: Casablanca, Maarif" value={editForm.address} onChange={e => setEditForm({...editForm, address: e.target.value})} className={`w-full glass bg-white rounded-2xl px-6 py-4 font-bold border-2 transition ${isEditing ? 'border-violet-100' : 'border-transparent'}`} readOnly={!isEditing} />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Ville / Secteur</label>
+                      <input type="text" placeholder="Ex: Casablanca, Maarif" value={editForm.address} onChange={e => setEditForm({...editForm, address: e.target.value})} className={`w-full glass bg-white rounded-2xl px-6 py-4 font-bold border-2 transition ${isEditing ? 'border-violet-100 ring-4 ring-violet-50' : 'border-transparent'}`} readOnly={!isEditing} />
                     </div>
                   </div>
                   
                   {user.role === UserRole.BARBER && (
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Bio Professionnelle</label>
-                      <textarea placeholder="Parlez de votre expérience..." value={editForm.bio} onChange={e => setEditForm({...editForm, bio: e.target.value})} className={`w-full glass bg-white rounded-2xl p-6 font-bold min-h-[150px] border-2 transition ${isEditing ? 'border-violet-100' : 'border-transparent'}`} readOnly={!isEditing}></textarea>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Ma Bio Professionnelle</label>
+                      <textarea placeholder="Décrivez votre expertise, vos années d'expérience..." value={editForm.bio} onChange={e => setEditForm({...editForm, bio: e.target.value})} className={`w-full glass bg-white rounded-2xl p-6 font-bold min-h-[150px] border-2 transition ${isEditing ? 'border-violet-100 ring-4 ring-violet-50' : 'border-transparent'}`} readOnly={!isEditing}></textarea>
                     </div>
                   )}
                </div>
@@ -136,33 +147,69 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
 
           {activeTab === 'RESA' && (
             <div className="space-y-6 animate-fadeIn">
-               <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Historique d'activité</h1>
+               <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-4">Mes Rendez-vous</h1>
                {bookings.length > 0 ? bookings.slice().reverse().map(bk => (
                  <div key={bk.id} className="glass p-8 rounded-[3rem] border-white/60 shadow-sm flex flex-col sm:flex-row justify-between items-center group bg-white/30">
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{new Date(bk.date).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                      <h4 className="text-lg font-black text-slate-900">{bk.serviceName}</h4>
-                      <span className={`px-3 py-1 rounded-md text-[9px] font-black uppercase inline-block mt-2 ${bk.status === BookingStatus.COMPLETED ? 'bg-green-100 text-green-600' : bk.status === BookingStatus.CANCELLED ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}>{bk.status}</span>
+                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{new Date(bk.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                      <h4 className="text-lg font-black text-slate-900 uppercase">{bk.serviceName}</h4>
+                      <span className={`px-3 py-1 rounded-md text-[8px] font-black uppercase inline-block mt-2 ${bk.status === BookingStatus.COMPLETED ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'}`}>{bk.status}</span>
                     </div>
                     <div className="flex items-center gap-6 mt-4 sm:mt-0">
                        <p className="text-2xl font-black text-slate-900">{bk.totalPrice} DH</p>
-                       {bk.status === BookingStatus.COMPLETED && <button onClick={() => setRatingModal(bk)} className="bg-amber-500 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg hover:bg-amber-600 transition">Évaluer</button>}
+                       {bk.status === BookingStatus.COMPLETED && <button onClick={() => setRatingModal(bk)} className="bg-amber-500 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg hover:bg-amber-600">Noter l'expert</button>}
                     </div>
                  </div>
                )) : (
-                 <div className="text-center py-20 glass rounded-[3rem] text-slate-400 font-black uppercase text-[10px]">Aucune réservation trouvée</div>
+                 <div className="text-center py-24 glass rounded-[3rem] text-slate-300 font-black uppercase text-[10px] tracking-widest">Aucune activité enregistrée</div>
                )}
             </div>
           )}
 
+          {activeTab === 'GALLERY' && user.role === UserRole.BARBER && (
+            <div className="glass p-10 rounded-[3rem] border-white/60 shadow-xl animate-fadeIn bg-white/40">
+               <div className="flex justify-between items-center mb-8">
+                 <h2 className="text-2xl font-black text-slate-900 uppercase">Ma Vitrine Photos</h2>
+                 <button 
+                  onClick={() => fileInputRef.current?.click()} 
+                  disabled={isUploading}
+                  className="bg-violet-600 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] shadow-xl hover:scale-105 transition disabled:opacity-50"
+                 >
+                   {isUploading ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-camera mr-2"></i>}
+                   Ajouter une photo
+                 </button>
+                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+               </div>
+               
+               <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                 {(user as Hairdresser).gallery?.map((img, i) => (
+                   <div key={i} className="relative group aspect-square">
+                     <img src={img} className="w-full h-full object-cover rounded-[2rem] shadow-md border-2 border-white" />
+                     <button onClick={() => {
+                        const gallery = (user as Hairdresser).gallery.filter((_, idx) => idx !== i);
+                        onUpdateProfile({...user, gallery});
+                     }} className="absolute top-4 right-4 bg-red-500 text-white w-10 h-10 rounded-xl opacity-0 group-hover:opacity-100 transition shadow-xl flex items-center justify-center"><i className="fas fa-trash-alt"></i></button>
+                   </div>
+                 ))}
+                 {(!(user as Hairdresser).gallery || (user as Hairdresser).gallery.length === 0) && (
+                   <div className="col-span-full py-20 text-center border-2 border-dashed border-white/60 rounded-[2rem]">
+                      <i className="fas fa-images text-4xl text-white/40 mb-4"></i>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Votre galerie est vide. Ajoutez vos plus belles coupes !</p>
+                   </div>
+                 )}
+               </div>
+            </div>
+          )}
+          
+          {/* Onglet SERVICES resté identique mais intégré */}
           {activeTab === 'SERVICES' && user.role === UserRole.BARBER && (
             <div className="glass p-10 rounded-[3rem] border-white/60 shadow-xl animate-fadeIn bg-white/40">
-               <h2 className="text-2xl font-black text-slate-900 uppercase mb-8">Ma Carte de Services</h2>
+               <h2 className="text-2xl font-black text-slate-900 uppercase mb-8">Mes Prestations</h2>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 bg-white/50 p-6 rounded-[2rem]">
-                 <input type="text" placeholder="Ex: Dégradé Homme" value={editForm.newService.name} onChange={e => setEditForm({...editForm, newService: {...editForm.newService, name: e.target.value}})} className="glass bg-white px-6 py-4 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-violet-200 transition" />
+                 <input type="text" placeholder="Nom (ex: Barbe + Soin)" value={editForm.newService.name} onChange={e => setEditForm({...editForm, newService: {...editForm.newService, name: e.target.value}})} className="glass bg-white px-6 py-4 rounded-2xl font-bold outline-none" />
                  <div className="flex gap-2">
-                   <input type="number" placeholder="DH" value={editForm.newService.price} onChange={e => setEditForm({...editForm, newService: {...editForm.newService, price: e.target.value}})} className="glass bg-white px-6 py-4 rounded-2xl font-bold w-full outline-none border-2 border-transparent focus:border-violet-200 transition" />
-                   <button onClick={addService} className="bg-violet-600 text-white px-8 rounded-2xl font-black shadow-lg"><i className="fas fa-plus"></i></button>
+                   <input type="number" placeholder="DH" value={editForm.newService.price} onChange={e => setEditForm({...editForm, newService: {...editForm.newService, price: e.target.value}})} className="glass bg-white px-6 py-4 rounded-2xl font-bold w-full outline-none" />
+                   <button onClick={addService} className="bg-violet-600 text-white px-8 rounded-2xl font-black shadow-lg hover:bg-violet-700 transition"><i className="fas fa-plus"></i></button>
                  </div>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -172,28 +219,10 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
                         <span className="font-black text-slate-900 uppercase text-xs">{s.name}</span>
                         <p className="font-black text-violet-600 text-lg">{s.price} DH</p>
                      </div>
-                     <button onClick={() => removeService(s.id)} className="text-red-400 hover:text-red-600 transition p-2 opacity-0 group-hover:opacity-100"><i className="fas fa-trash-alt"></i></button>
-                   </div>
-                 ))}
-               </div>
-            </div>
-          )}
-
-          {activeTab === 'GALLERY' && user.role === UserRole.BARBER && (
-            <div className="glass p-10 rounded-[3rem] border-white/60 shadow-xl animate-fadeIn bg-white/40">
-               <h2 className="text-2xl font-black text-slate-900 uppercase mb-8">Ma Galerie de Travaux</h2>
-               <div className="flex gap-4 mb-10">
-                 <input type="text" placeholder="Lien vers une image (URL Unsplash, etc.)" value={editForm.newImage} onChange={e => setEditForm({...editForm, newImage: e.target.value})} className="flex-1 glass bg-white px-6 py-4 rounded-2xl font-bold outline-none" />
-                 <button onClick={addGalleryImage} className="bg-violet-600 text-white px-8 rounded-2xl font-black uppercase text-[10px] shadow-lg">Ajouter</button>
-               </div>
-               <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                 {(user as Hairdresser).gallery?.map((img, i) => (
-                   <div key={i} className="relative group aspect-square">
-                     <img src={img} className="w-full h-full object-cover rounded-[2rem] shadow-md border-2 border-white" />
                      <button onClick={() => {
-                        const gallery = (user as Hairdresser).gallery.filter((_, idx) => idx !== i);
-                        onUpdateProfile({...user, gallery});
-                     }} className="absolute top-4 right-4 bg-red-500 text-white w-10 h-10 rounded-xl opacity-0 group-hover:opacity-100 transition shadow-xl"><i className="fas fa-trash"></i></button>
+                        const services = (user as Hairdresser).services.filter(x => x.id !== s.id);
+                        onUpdateProfile({...user, services});
+                     }} className="text-red-400 hover:text-red-600 transition p-2 opacity-0 group-hover:opacity-100"><i className="fas fa-trash-alt"></i></button>
                    </div>
                  ))}
                </div>
@@ -201,7 +230,7 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
           )}
         </div>
       </div>
-      
+
       {/* RATING MODAL */}
       {ratingModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
@@ -210,7 +239,7 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
             <div className="flex justify-center gap-3 mb-8">
                {[1,2,3,4,5].map(star => <button key={star} onClick={() => setRating(star)} className={`text-3xl transition ${rating >= star ? 'text-amber-500' : 'text-slate-200'}`}><i className="fas fa-star"></i></button>)}
             </div>
-            <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Qu'avez-vous pensé de l'expérience ?" className="w-full glass bg-slate-50 rounded-2xl p-6 font-bold text-sm mb-8 min-h-[120px] outline-none border-2 border-transparent focus:border-violet-200"></textarea>
+            <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Un petit mot sur l'expert..." className="w-full glass bg-slate-50 rounded-2xl p-6 font-bold text-sm mb-8 min-h-[120px] outline-none border-2 border-transparent focus:border-violet-200"></textarea>
             <button onClick={() => {
               if (!ratingModal) return;
               onAddReview({
@@ -224,7 +253,7 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
               });
               setRatingModal(null);
             }} className="w-full bg-violet-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl">Publier mon avis</button>
-            <button onClick={() => setRatingModal(null)} className="mt-6 text-slate-400 font-bold uppercase text-[10px] tracking-widest">Peut-être plus tard</button>
+            <button onClick={() => setRatingModal(null)} className="mt-6 text-slate-400 font-bold uppercase text-[10px] tracking-widest">Fermer</button>
           </div>
         </div>
       )}
