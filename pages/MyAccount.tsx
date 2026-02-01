@@ -17,8 +17,10 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
   const [comment, setComment] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [editForm, setEditForm] = useState({
     name: user.name,
@@ -41,7 +43,25 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
     alert("Profil mis à jour avec succès !");
   };
 
-  // Fonction pour gérer l'upload de photo locale
+  // Gestion du changement de l'avatar (photo de profil)
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      onUpdateProfile({
+        ...user,
+        avatar: base64String
+      });
+      setIsUploadingAvatar(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Gestion de l'ajout à la galerie
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -80,9 +100,23 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
         {/* SIDEBAR */}
         <div className="lg:w-80">
           <div className="glass p-8 rounded-[3rem] border-white/60 shadow-xl text-center sticky top-28">
-            <div className="relative inline-block group">
-              <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} className="w-32 h-32 rounded-[2.5rem] mx-auto mb-6 object-cover shadow-2xl ring-4 ring-white" />
+            <div className="relative inline-block group mb-6">
+              <img 
+                src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`} 
+                className="w-32 h-32 rounded-[2.5rem] mx-auto object-cover shadow-2xl ring-4 ring-white transition-all group-hover:brightness-75" 
+              />
+              <button 
+                onClick={() => avatarInputRef.current?.click()}
+                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Changer la photo de profil"
+              >
+                <div className="bg-white/90 p-3 rounded-full shadow-lg">
+                  {isUploadingAvatar ? <i className="fas fa-spinner fa-spin text-violet-600"></i> : <i className="fas fa-camera text-violet-600"></i>}
+                </div>
+              </button>
+              <input type="file" ref={avatarInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden" />
             </div>
+            
             <h2 className="text-xl font-black text-slate-900 truncate">{user.name}</h2>
             <p className="text-[10px] font-black text-violet-600 uppercase tracking-widest mt-2">{user.role}</p>
             
@@ -201,7 +235,6 @@ const MyAccount: React.FC<MyAccountProps> = ({ user, bookings, onUpdateProfile, 
             </div>
           )}
           
-          {/* Onglet SERVICES resté identique mais intégré */}
           {activeTab === 'SERVICES' && user.role === UserRole.BARBER && (
             <div className="glass p-10 rounded-[3rem] border-white/60 shadow-xl animate-fadeIn bg-white/40">
                <h2 className="text-2xl font-black text-slate-900 uppercase mb-8">Mes Prestations</h2>
