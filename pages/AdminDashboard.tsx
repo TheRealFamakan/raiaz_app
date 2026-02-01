@@ -13,223 +13,166 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allMembers, bookings, o
   const [filter, setFilter] = useState('');
   const [activeTab, setActiveTab] = useState<'MEMBERS' | 'BOOKINGS'>('MEMBERS');
 
-  // Statistiques calculées
   const stats = useMemo(() => {
-    const completedBookings = bookings.filter(b => b.status === BookingStatus.COMPLETED);
-    const totalRevenue = completedBookings.reduce((acc, b) => acc + b.totalPrice, 0);
-    const mhcEarnings = totalRevenue * 0.15;
+    const completed = bookings.filter(b => b.status === BookingStatus.COMPLETED);
+    const rev = completed.reduce((acc, b) => acc + b.totalPrice, 0);
     return {
-      totalMembers: allMembers.length,
-      totalBookings: bookings.length,
-      totalRevenue,
-      mhcEarnings
+      members: allMembers.length,
+      bookings: bookings.length,
+      revenue: rev,
+      earnings: rev * 0.15
     };
   }, [allMembers, bookings]);
 
-  // Filtrage sécurisé des membres
   const filteredMembers = useMemo(() => {
-    return allMembers.filter(m => {
-      const searchStr = filter.toLowerCase();
-      return (
-        (m.name?.toLowerCase() || '').includes(searchStr) || 
-        (m.email?.toLowerCase() || '').includes(searchStr) ||
-        (m.role?.toLowerCase() || '').includes(searchStr)
-      );
-    });
+    return allMembers.filter(m => 
+      (m.name?.toLowerCase() || '').includes(filter.toLowerCase()) || 
+      (m.email?.toLowerCase() || '').includes(filter.toLowerCase())
+    );
   }, [allMembers, filter]);
 
-  const toggleMemberStatus = (member: User | Hairdresser) => {
-    onUpdateMember({ ...member, isActive: member.isActive === false ? true : false });
-  };
-
-  const handleDeleteClick = (id: string) => {
-    if (confirm("ATTENTION : Cette action est irréversible. Supprimer définitivement cet utilisateur ?")) {
-      onDeleteMember(id);
-    }
+  const toggleStatus = (m: User | Hairdresser) => {
+    onUpdateMember({ ...m, isActive: m.isActive === false });
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">Supervision MyHairCut</h1>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Interface de contrôle global</p>
-        </div>
-        
-        {/* Barre de recherche globale */}
-        <div className="w-full md:w-80 relative">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+        <h1 className="text-3xl font-bold text-slate-900">Administration Système</h1>
+        <div className="relative w-full md:w-80">
           <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
           <input 
             type="text" 
-            placeholder="Chercher membre, email, rôle..." 
+            placeholder="Filtrer par nom ou email..." 
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="w-full glass bg-white/50 border border-white/60 rounded-2xl pl-12 pr-4 py-3 font-bold text-sm outline-none focus:ring-4 focus:ring-violet-100 transition"
+            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-violet-500 outline-none transition"
           />
         </div>
       </div>
 
-      {/* Cartes de statistiques */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        <div className="glass p-8 rounded-[2.5rem] border-white/60 shadow-xl">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Membres</p>
-          <p className="text-3xl font-black text-slate-900">{stats.totalMembers}</p>
+      {/* Stats rapides */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-slate-500 text-sm font-medium mb-1">Membres inscrits</p>
+          <p className="text-2xl font-bold text-slate-900">{stats.members}</p>
         </div>
-        <div className="glass p-8 rounded-[2.5rem] border-white/60 shadow-xl">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Rendez-vous</p>
-          <p className="text-3xl font-black text-slate-900">{stats.totalBookings}</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-slate-500 text-sm font-medium mb-1">Rendez-vous totaux</p>
+          <p className="text-2xl font-bold text-slate-900">{stats.bookings}</p>
         </div>
-        <div className="glass p-8 rounded-[2.5rem] border-white/60 shadow-xl">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Chiffre Affaire</p>
-          <p className="text-3xl font-black text-slate-900">{stats.totalRevenue.toFixed(0)} DH</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <p className="text-slate-500 text-sm font-medium mb-1">Volume d'affaires</p>
+          <p className="text-2xl font-bold text-slate-900">{stats.revenue} DH</p>
         </div>
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl text-white">
-          <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-1">Commission (15%)</p>
-          <p className="text-3xl font-black text-violet-400">{stats.mhcEarnings.toFixed(0)} DH</p>
+        <div className="bg-violet-600 p-6 rounded-2xl shadow-sm text-white">
+          <p className="text-violet-100 text-sm font-medium mb-1">Commission (15%)</p>
+          <p className="text-2xl font-bold">{stats.earnings.toFixed(0)} DH</p>
         </div>
       </div>
 
-      {/* Navigation Onglets */}
-      <div className="flex glass bg-white/40 p-1.5 rounded-2xl shadow-lg border-white/60 inline-flex mb-8">
-        <button 
-          onClick={() => setActiveTab('MEMBERS')} 
-          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'MEMBERS' ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-400'}`}
-        >
-          <i className="fas fa-users mr-2"></i> Utilisateurs
-        </button>
-        <button 
-          onClick={() => setActiveTab('BOOKINGS')} 
-          className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'BOOKINGS' ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-400'}`}
-        >
-          <i className="fas fa-calendar-alt mr-2"></i> Réservations
-        </button>
+      <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200 inline-flex mb-4">
+        <button onClick={() => setActiveTab('MEMBERS')} className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'MEMBERS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}>Membres</button>
+        <button onClick={() => setActiveTab('BOOKINGS')} className={`px-6 py-2 rounded-lg font-bold text-sm transition ${activeTab === 'BOOKINGS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}>Réservations</button>
       </div>
 
-      {activeTab === 'MEMBERS' ? (
-        <div className="glass rounded-[3rem] border-white/60 shadow-2xl overflow-hidden animate-fadeIn bg-white/30">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-900/5">
-                <tr>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Utilisateur</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Type / Rôle</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">État</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Gestion</th>
+      {activeTab === 'MEMBERS' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Membre</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Rôle</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">État</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {filteredMembers.map((m) => (
+                <tr key={m.id} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <img src={m.avatar || `https://ui-avatars.com/api/?name=${m.name}`} className="w-10 h-10 rounded-full object-cover border" />
+                      <div>
+                        <p className="font-bold text-slate-900">{m.name}</p>
+                        <p className="text-xs text-slate-500">{m.email}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                      m.role === UserRole.BARBER ? 'bg-violet-100 text-violet-700' : 
+                      m.role === UserRole.ADMIN ? 'bg-slate-900 text-white' : 
+                      'bg-slate-100 text-slate-600'
+                    }`}>
+                      {m.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`inline-block px-3 py-1 rounded-lg font-bold text-[10px] uppercase ${m.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {m.isActive !== false ? 'Actif' : 'Suspendu'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button 
+                        onClick={() => toggleStatus(m)}
+                        className={`p-2 rounded-lg border transition ${m.isActive !== false ? 'text-amber-600 border-amber-200 hover:bg-amber-50' : 'text-green-600 border-green-200 hover:bg-green-50'}`}
+                        title={m.isActive !== false ? "Suspendre" : "Activer"}
+                      >
+                        <i className={`fas ${m.isActive !== false ? 'fa-user-slash' : 'fa-user-check'}`}></i>
+                      </button>
+                      <button 
+                        onClick={() => { if(confirm("Supprimer ce compte définitivement ?")) onDeleteMember(m.id) }}
+                        className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition"
+                        title="Supprimer"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-white/20">
-                {filteredMembers.map((member) => (
-                  <tr key={member.id} className="hover:bg-white/40 transition-colors">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        <img 
-                          src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}&background=random`} 
-                          className="w-12 h-12 rounded-2xl object-cover shadow-md border-2 border-white" 
-                        />
-                        <div>
-                          <p className="font-black text-slate-900 text-sm">{member.name}</p>
-                          <p className="text-[10px] text-slate-400 font-bold">{member.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <span className={`px-4 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest ${
-                        member.role === UserRole.BARBER ? 'bg-violet-100 text-violet-600' : 
-                        member.role === UserRole.ADMIN ? 'bg-slate-900 text-white' : 
-                        'bg-blue-100 text-blue-600'
-                      }`}>
-                        {member.role}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6 text-center">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg ${member.isActive !== false ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${member.isActive !== false ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                        <span className="text-[9px] font-black uppercase">{member.isActive !== false ? 'Actif' : 'Suspendu'}</span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button 
-                          title={member.isActive !== false ? "Suspendre" : "Activer"}
-                          onClick={() => toggleMemberStatus(member)} 
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition hover:scale-110 ${
-                            member.isActive !== false ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : 'bg-green-100 text-green-600 hover:bg-green-200'
-                          }`}
-                        >
-                          <i className={`fas ${member.isActive !== false ? 'fa-user-slash' : 'fa-user-check'}`}></i>
-                        </button>
-                        <button 
-                          title="Supprimer définitivement"
-                          onClick={() => handleDeleteClick(member.id)} 
-                          className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white transition hover:scale-110"
-                        >
-                          <i className="fas fa-trash-alt"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredMembers.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-8 py-20 text-center">
-                      <i className="fas fa-users-slash text-4xl text-slate-200 mb-4 block"></i>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Aucun membre ne correspond à votre recherche</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+              {filteredMembers.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-medium">Aucun utilisateur trouvé</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      ) : (
-        <div className="glass rounded-[3rem] border-white/60 shadow-2xl overflow-hidden animate-fadeIn bg-white/30">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-900/5">
-                <tr>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Date / Heure</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Client & Expert</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Service</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Montant</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Statut</th>
+      )}
+
+      {activeTab === 'BOOKINGS' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Client / Expert</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prestation</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Montant</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {bookings.slice().reverse().map((b) => (
+                <tr key={b.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4 text-sm text-slate-600">{new Date(b.date).toLocaleString('fr-FR')}</td>
+                  <td className="px-6 py-4">
+                     <p className="text-sm font-bold text-slate-900">{b.clientName || 'Visiteur'}</p>
+                     <p className="text-[10px] text-violet-600 font-medium uppercase">Expert: {b.barberId.substring(0,8)}</p>
+                  </td>
+                  <td className="px-6 py-4 text-sm">{b.serviceName}</td>
+                  <td className="px-6 py-4 text-right font-bold text-slate-900">{b.totalPrice} DH</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-white/20">
-                {bookings.slice().reverse().map((bk) => {
-                  const client = allMembers.find(m => m.id === bk.clientId);
-                  const barber = allMembers.find(m => m.id === bk.barberId);
-                  return (
-                    <tr key={bk.id} className="hover:bg-white/40 transition-colors">
-                      <td className="px-8 py-6 text-xs font-bold text-slate-500">
-                        {new Date(bk.date).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex flex-col gap-1">
-                          <p className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">Client: <span className="text-slate-500">{bk.clientName || client?.name || 'Visiteur'}</span></p>
-                          <p className="text-[10px] font-black text-violet-600 uppercase tracking-tighter">Expert: <span className="text-slate-500">{barber?.name || 'Inconnu'}</span></p>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <span className="bg-white/60 px-3 py-1 rounded-lg text-[9px] font-black uppercase text-slate-600 border border-white">
-                          {bk.serviceName}
-                        </span>
-                      </td>
-                      <td className="px-8 py-6 text-right font-black text-slate-900">{bk.totalPrice} DH</td>
-                      <td className="px-8 py-6 text-center">
-                        <span className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest ${
-                          bk.status === BookingStatus.COMPLETED ? 'bg-green-100 text-green-600' :
-                          bk.status === BookingStatus.CANCELLED ? 'bg-red-100 text-red-600' :
-                          'bg-amber-100 text-amber-600'
-                        }`}>
-                          {bk.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+              ))}
+              {bookings.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-medium">Aucune réservation pour le moment</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

@@ -10,52 +10,48 @@ interface HairdresserCardProps {
 const HairdresserCard: React.FC<HairdresserCardProps> = ({ barber, onClick }) => {
   return (
     <div 
-      className="glass rounded-[2rem] shadow-sm hover:shadow-xl transition-all border border-white/50 overflow-hidden cursor-pointer group hover:-translate-y-1"
+      className="card-pro overflow-hidden cursor-pointer group shadow-sm"
       onClick={() => onClick(barber.id)}
     >
-      <div className="relative h-56 overflow-hidden">
-        <img src={barber.avatar} alt={barber.name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
+      <div className="relative h-72 overflow-hidden">
+        <img 
+          src={barber.avatar} 
+          alt={barber.name} 
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        
         {barber.isVerified && (
-          <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg border-white/60">
+          <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-lg border border-white">
             <i className="fas fa-check-circle text-violet-600 text-xs"></i> 
-            <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">Certifié</span>
+            <span className="text-[10px] font-extrabold text-slate-800 uppercase tracking-widest">Certifié</span>
           </div>
         )}
-        <div className="absolute bottom-4 left-4 glass px-3 py-1.5 rounded-xl flex items-center gap-2 border-white/60">
-          <i className="fas fa-location-arrow text-violet-600 text-xs"></i>
-          <span className="text-xs font-bold text-slate-800">{barber.distance} km</span>
+
+        <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur px-3 py-1 rounded-lg text-white text-[10px] font-bold">
+           {barber.distance} KM
         </div>
       </div>
       
       <div className="p-6">
-        <div className="flex justify-between items-start mb-3">
-          <h3 className="font-extrabold text-lg text-slate-900 leading-tight">{barber.name}</h3>
-          <div className="flex items-center text-amber-500 glass-dark px-2 py-1 rounded-lg">
-            <i className="fas fa-star mr-1 text-[10px]"></i> 
-            <span className="text-xs font-black text-white">{barber.rating}</span>
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="font-extrabold text-slate-900 text-xl leading-tight group-hover:text-violet-600 transition-colors uppercase tracking-tight">{barber.name}</h3>
+          <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1 rounded-lg text-amber-700 text-xs font-black">
+            <i className="fas fa-star"></i>
+            <span>{barber.rating}</span>
           </div>
         </div>
         
-        <p className="text-slate-500 text-xs line-clamp-2 mb-5 leading-relaxed font-medium">
-          {barber.bio}
-        </p>
+        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-6">Master Stylist • Casablanca</p>
         
-        <div className="flex flex-wrap gap-2 mb-6">
-          {barber.services.slice(0, 2).map(s => (
-            <span key={s.id} className="bg-violet-500/10 text-violet-600 text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-widest border border-violet-500/10">
-              {s.name}
-            </span>
-          ))}
-        </div>
-        
-        <div className="flex items-center justify-between pt-5 border-t border-white/30">
+        <div className="flex items-center justify-between pt-5 border-t border-slate-50">
           <div>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">À partir de</p>
-            <span className="text-violet-600 font-black text-lg">{Math.min(...barber.services.map(s => s.price))} DH</span>
+            <span className="text-[9px] font-black text-slate-400 uppercase block tracking-widest">À partir de</span>
+            <span className="text-xl font-black text-slate-900">{Math.min(...barber.services.map(s => s.price))} DH</span>
           </div>
-          <button className="bg-slate-900 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-violet-600 transition shadow-lg">
-            <i className="fas fa-arrow-right text-sm"></i>
-          </button>
+          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-violet-600 group-hover:text-white transition-all duration-300">
+             <i className="fas fa-arrow-right text-xs"></i>
+          </div>
         </div>
       </div>
     </div>

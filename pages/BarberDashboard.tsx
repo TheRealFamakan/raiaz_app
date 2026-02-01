@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Hairdresser, Booking, BookingStatus, Service } from '../types';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 interface BarberDashboardProps {
   barber: Hairdresser;
@@ -18,7 +18,6 @@ const BarberDashboard: React.FC<BarberDashboardProps> = ({ barber, bookings = []
   const isDebt = wallet < 0;
   const revenue = bookings.filter(b => b.status === BookingStatus.COMPLETED).reduce((a, b) => a + b.totalPrice, 0);
 
-  // Données de graphique simulées
   const chartData = bookings.filter(b => b.status === BookingStatus.COMPLETED).slice(-10).map((b, i) => ({
     name: `J-${10-i}`,
     val: b.totalPrice
@@ -40,141 +39,170 @@ const BarberDashboard: React.FC<BarberDashboardProps> = ({ barber, bookings = []
     onUpdateBarber({ ...barber, services: barber.services.filter(s => s.id !== id) });
   };
 
-  if (!barber) return <div className="p-20 text-center font-black uppercase text-slate-400">Initialisation de votre espace...</div>;
+  if (!barber) return <div className="p-32 text-center font-bold text-slate-400 animate-pulse">Chargement de votre cockpit...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+        <div>
+           <h1 className="text-4xl font-black text-slate-900 tracking-tight">Espace Expert</h1>
+           <p className="text-slate-500 font-medium mt-1">Gérez votre activité et suivez vos performances en temps réel.</p>
+        </div>
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+          {['RESA', 'SERVICES', 'FINANCES'].map(t => (
+            <button 
+              key={t} 
+              onClick={() => setActiveTab(t as any)} 
+              className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              {t === 'RESA' ? 'Réservations' : t === 'SERVICES' ? 'Prestations' : 'Finances'}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         
-        {/* STATS & CHARTS */}
-        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-           <div className={`p-8 rounded-[2.5rem] border shadow-xl ${isDebt ? 'bg-amber-50 border-amber-200' : 'glass'}`}>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Portefeuille MHC</p>
-              <p className={`text-3xl font-black ${isDebt ? 'text-amber-600' : 'text-slate-900'}`}>{wallet.toFixed(2)} DH</p>
-              {isDebt && <p className="text-[8px] font-bold text-amber-500 mt-2">Commission de 15% due</p>}
+        {/* SIDEBAR STATS */}
+        <div className="lg:col-span-4 space-y-6">
+           <div className={`p-8 rounded-[2rem] border-2 shadow-sm ${isDebt ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Portefeuille MHC</span>
+                <i className={`fas fa-wallet ${isDebt ? 'text-amber-400' : 'text-slate-200'}`}></i>
+              </div>
+              <p className={`text-4xl font-black ${isDebt ? 'text-amber-600' : 'text-slate-900'}`}>{wallet.toFixed(0)} <span className="text-xl">DH</span></p>
+              {isDebt && <p className="text-[10px] font-bold text-amber-500 mt-4 bg-white/50 p-3 rounded-xl border border-amber-100">Solde à régulariser (Commissions 15%)</p>}
            </div>
-           <div className="glass p-8 rounded-[2.5rem] border-white/60 shadow-xl">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Chiffre d'Affaires</p>
-              <p className="text-3xl font-black text-slate-900">{revenue} DH</p>
-           </div>
-           <div className="glass p-8 rounded-[2.5rem] border-white/60 shadow-xl md:col-span-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Performance (Ventes)</p>
-              <div className="h-16 w-full">
+
+           <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-6">Performance mensuelle</span>
+              <div className="h-24 w-full">
                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData.length > 0 ? chartData : [{name: '0', val: 0}]}>
-                       <Area type="monotone" dataKey="val" stroke="#8B5CF6" fill="#C4B5FD" />
+                    <AreaChart data={chartData.length > 0 ? chartData : [{val: 0}]}>
+                       <Area type="monotone" dataKey="val" stroke="#8B5CF6" fill="#EDE9FE" strokeWidth={3} />
                     </AreaChart>
                  </ResponsiveContainer>
+              </div>
+              <div className="mt-6 flex justify-between items-end">
+                <div>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase">Chiffre d'Affaires</p>
+                   <p className="text-2xl font-black text-slate-900">{revenue} DH</p>
+                </div>
+                <div className="text-right">
+                   <p className="text-[10px] font-bold text-slate-400 uppercase">RDV Complétés</p>
+                   <p className="text-2xl font-black text-violet-600">{bookings.filter(b => b.status === BookingStatus.COMPLETED).length}</p>
+                </div>
               </div>
            </div>
         </div>
 
-        {/* MAIN CONTENT */}
+        {/* MAIN AREA */}
         <div className="lg:col-span-8 space-y-8">
-          <div className="flex glass bg-white/40 p-1.5 rounded-2xl shadow-lg border-white/60 inline-flex">
-            {['RESA', 'SERVICES', 'FINANCES'].map(t => (
-              <button key={t} onClick={() => setActiveTab(t as any)} className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === t ? 'bg-violet-600 text-white shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}>
-                {t === 'RESA' ? 'Réservations' : t === 'SERVICES' ? 'Mes Tarifs' : 'Finances'}
-              </button>
-            ))}
-          </div>
-
           {activeTab === 'RESA' && (
-            <div className="grid grid-cols-1 gap-6 animate-fadeIn">
-              {bookings.slice().reverse().map(bk => (
-                <div key={bk.id} className="glass p-8 rounded-[3rem] border-white/60 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 group hover:shadow-xl transition-all">
+            <div className="space-y-6 animate-fadeIn">
+              {bookings.length > 0 ? bookings.slice().reverse().map(bk => (
+                <div key={bk.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-8 group hover:border-violet-200 transition-all">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-4">
-                      <span className={`px-4 py-1 rounded-full text-[8px] font-black uppercase ${bk.status === 'PENDING' ? 'bg-amber-100 text-amber-600' : bk.status === 'COMPLETED' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'}`}>{bk.status}</span>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(bk.date).toLocaleString('fr-FR')}</p>
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${
+                        bk.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 
+                        bk.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {bk.status}
+                      </span>
+                      <p className="text-xs font-bold text-slate-400">{new Date(bk.date).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
-                    <h4 className="text-xl font-black text-slate-900">{bk.serviceName}</h4>
-                    <div className="flex items-center gap-2 mt-2">
-                      <img src={`https://ui-avatars.com/api/?name=${bk.clientName}&background=random`} className="w-5 h-5 rounded-full" />
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-tight">{bk.clientName || 'Client'}</p>
+                    <h4 className="text-xl font-black text-slate-900 uppercase tracking-tight">{bk.serviceName}</h4>
+                    <div className="flex items-center gap-3 mt-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-500">
+                        {bk.clientName?.[0]}
+                      </div>
+                      <p className="text-sm font-bold text-slate-500">{bk.clientName || 'Client anonyme'}</p>
                     </div>
                   </div>
-                  <div className="flex gap-3">
+                  
+                  <div className="flex items-center gap-4 w-full md:w-auto">
                     {bk.status === BookingStatus.PENDING && (
-                      <button onClick={() => onUpdateBooking(bk.id, BookingStatus.CONFIRMED)} className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-violet-600 transition">Accepter</button>
+                      <button 
+                        onClick={() => onUpdateBooking(bk.id, BookingStatus.CONFIRMED)} 
+                        className="flex-1 md:flex-none bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-violet-600 transition shadow-lg"
+                      >
+                        Accepter
+                      </button>
                     )}
                     {bk.status === BookingStatus.CONFIRMED && (
-                      <button onClick={() => onUpdateBooking(bk.id, BookingStatus.COMPLETED)} className="bg-green-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-green-700 transition shadow-xl">Terminer</button>
+                      <button 
+                        onClick={() => onUpdateBooking(bk.id, BookingStatus.COMPLETED)} 
+                        className="flex-1 md:flex-none bg-green-600 text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-green-700 transition shadow-lg"
+                      >
+                        Terminer
+                      </button>
                     )}
-                    <p className="text-xl font-black text-violet-600 bg-violet-50 px-6 py-4 rounded-2xl border border-violet-100 min-w-[100px] text-center">{bk.totalPrice} DH</p>
+                    <div className="bg-slate-50 px-6 py-4 rounded-2xl border border-slate-100 min-w-[120px] text-center">
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Recette</p>
+                       <p className="text-lg font-black text-slate-900">{bk.totalPrice} DH</p>
+                    </div>
                   </div>
                 </div>
-              ))}
-              {bookings.length === 0 && <div className="p-20 text-center glass rounded-[3rem] border-white/60 font-black uppercase text-slate-300 tracking-widest">Aucun rendez-vous pour le moment</div>}
+              )) : (
+                <div className="py-24 text-center bg-white rounded-[3rem] border border-dashed border-slate-300">
+                   <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i className="fas fa-calendar-alt text-slate-300"></i>
+                   </div>
+                   <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Aucun rendez-vous planifié</p>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'SERVICES' && (
             <div className="space-y-8 animate-fadeIn">
-               <form onSubmit={handleAddService} className="glass p-10 rounded-[3rem] border-white/60 shadow-xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                  <div className="md:col-span-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Nom du service</label>
-                    <input required type="text" value={newService.name} onChange={e => setNewService({...newService, name: e.target.value})} className="w-full glass bg-white border-white/60 rounded-xl px-4 py-3 font-bold" placeholder="Ex: Dégradé Laser" />
+               <form onSubmit={handleAddService} className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-8">Ajouter une prestation</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block">Nom du service</label>
+                      <input 
+                        required 
+                        type="text" 
+                        value={newService.name} 
+                        onChange={e => setNewService({...newService, name: e.target.value})} 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3.5 font-bold outline-none focus:border-violet-400 transition" 
+                        placeholder="Ex: Dégradé Homme + Barbe" 
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block">Tarif (DH)</label>
+                      <input 
+                        required 
+                        type="number" 
+                        value={newService.price} 
+                        onChange={e => setNewService({...newService, price: e.target.value})} 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3.5 font-bold outline-none focus:border-violet-400 transition" 
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Prix (DH)</label>
-                    <input required type="number" value={newService.price} onChange={e => setNewService({...newService, price: e.target.value})} className="w-full glass bg-white border-white/60 rounded-xl px-4 py-3 font-bold" />
-                  </div>
-                  <button type="submit" className="bg-violet-600 text-white py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg">Ajouter</button>
+                  <button type="submit" className="mt-8 bg-violet-600 text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-violet-100 hover:bg-violet-700 transition">
+                    Enregistrer la prestation
+                  </button>
                </form>
+
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {barber.services?.map(s => (
-                    <div key={s.id} className="glass p-8 rounded-[2.5rem] border-white/60 shadow-sm flex justify-between items-center group">
-                       <div><h4 className="font-black text-slate-900 text-sm uppercase">{s.name}</h4><p className="text-xl font-black text-violet-600 mt-1">{s.price} DH</p></div>
-                       <button onClick={() => removeService(s.id)} className="w-10 h-10 rounded-xl glass border-white/80 text-red-500 opacity-0 group-hover:opacity-100 transition hover:bg-red-500 hover:text-white"><i className="fas fa-trash-alt"></i></button>
+                    <div key={s.id} className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex justify-between items-center group hover:border-violet-200 transition-all">
+                       <div>
+                          <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-tight">{s.name}</h4>
+                          <p className="text-2xl font-black text-violet-600 mt-2">{s.price} <span className="text-sm font-bold">DH</span></p>
+                       </div>
+                       <button onClick={() => removeService(s.id)} className="w-10 h-10 rounded-xl border border-slate-100 text-slate-300 hover:text-red-500 hover:bg-red-50 hover:border-red-100 transition-all">
+                          <i className="fas fa-trash-alt text-sm"></i>
+                       </button>
                     </div>
                   ))}
                </div>
             </div>
           )}
-          
-          {activeTab === 'FINANCES' && (
-            <div className="glass p-10 rounded-[3rem] border-white/60 shadow-xl animate-fadeIn">
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">Détails des Commissions</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                  <span className="font-bold text-slate-500 text-xs">Total Ventes</span>
-                  <span className="font-black text-slate-900">{revenue} DH</span>
-                </div>
-                <div className="flex justify-between p-6 bg-violet-50 rounded-2xl border border-violet-100">
-                  <span className="font-bold text-violet-600 text-xs">Commissions plateforme (15%)</span>
-                  <span className="font-black text-violet-600">{(revenue * 0.15).toFixed(2)} DH</span>
-                </div>
-                <div className="p-6 text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Le solde est prélevé automatiquement sur vos encaissements futurs.</p>
-                  <button className="bg-slate-900 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest">Voir l'historique bancaire</button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* SIDEBAR */}
-        <div className="lg:col-span-4 space-y-8">
-           <div className="glass p-10 rounded-[3rem] border-white/60 shadow-2xl">
-              <h3 className="font-black text-slate-900 uppercase text-xs mb-8 tracking-widest">Avis Clients</h3>
-              <div className="space-y-6">
-                 <div className="flex items-center gap-4 p-4 bg-violet-50 rounded-2xl border border-violet-100">
-                    <div className="text-3xl font-black text-violet-600">{barber.rating || 5.0}</div>
-                    <div><p className="text-[10px] font-black text-slate-400 uppercase">Note Moyenne</p><p className="text-[10px] font-bold text-slate-500">{barber.reviewCount || 0} avis vérifiés</p></div>
-                 </div>
-                 <div className="space-y-4">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center py-8 opacity-40">Les avis détaillés apparaîtront ici dès réception</p>
-                 </div>
-              </div>
-           </div>
-           
-           <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl text-white">
-              <h3 className="font-black uppercase text-xs mb-6 tracking-widest text-violet-400">Astuce Business</h3>
-              <p className="text-sm font-medium leading-relaxed">
-                Les experts qui répondent aux réservations en moins de 10 minutes augmentent leur visibilité de 40% sur MyHairCut.
-              </p>
-           </div>
         </div>
       </div>
     </div>

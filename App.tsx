@@ -26,8 +26,25 @@ const App: React.FC = () => {
 
   const [allMembers, setAllMembers] = useState<(User | Hairdresser)[]>(() => {
     const saved = localStorage.getItem('mhc_all_members');
-    if (saved) return JSON.parse(saved);
-    return [...MOCK_HAIRDRESSERS.map(h => ({ ...h, isActive: true, walletBalance: 0 }))];
+    const mocks = MOCK_HAIRDRESSERS.map(h => ({ ...h, isActive: true, walletBalance: 0 }));
+    
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // On fusionne les mocks (qui sont la base) avec les utilisateurs sauvegardés
+      // pour éviter les doublons tout en gardant les nouveaux comptes.
+      const combined = [...mocks];
+      parsed.forEach((savedUser: any) => {
+        if (!combined.find(m => m.id === savedUser.id)) {
+          combined.push(savedUser);
+        } else {
+          // Si l'utilisateur est un mock mais a des données sauvegardées (ex: suspendu), on met à jour
+          const idx = combined.findIndex(m => m.id === savedUser.id);
+          combined[idx] = { ...combined[idx], ...savedUser };
+        }
+      });
+      return combined;
+    }
+    return mocks;
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -69,19 +86,14 @@ const App: React.FC = () => {
       setCurrentUser(prev => prev ? { ...prev, ...updated } : updated);
       if (updated.isActive === false) {
         handleLogout();
-        alert("Votre compte a été suspendu.");
+        alert("Votre compte a été suspendu par l'administration.");
       }
     }
   };
 
   const handleDeleteMember = useCallback((id: string) => {
-    // Cette fonction est appelée depuis AdminDashboard
-    setAllMembers(prev => {
-      const newList = prev.filter(m => m.id !== id);
-      return newList;
-    });
+    setAllMembers(prev => prev.filter(m => m.id !== id));
     setBookings(prev => prev.filter(b => b.clientId !== id && b.barberId !== id));
-    
     if (currentUser?.id === id) {
       handleLogout();
     }
@@ -173,9 +185,9 @@ const App: React.FC = () => {
   const barbers = allMembers.filter(m => m.role === UserRole.BARBER && m.isActive !== false) as Hairdresser[];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-50">
       <Navbar onNavigate={setCurrentPage} isLoggedIn={isLoggedIn} userRole={userRole} onLogout={handleLogout} />
-      <main className="animate-fadeIn pt-24 pb-12 min-h-[80vh]">
+      <main className="pt-24 pb-12 min-h-[80vh]">
         {currentPage === 'home' && <Home onNavigate={setCurrentPage} barbers={barbers} />}
         {currentPage === 'search' && <Search onNavigate={setCurrentPage} barbers={barbers} />}
         {currentPage === 'profile' && (
@@ -214,7 +226,7 @@ const App: React.FC = () => {
         {currentPage === 'ai-advisor' && <AIAdvisor />}
         {currentPage === 'login' && <Login onLogin={handleLogin} />}
       </main>
-      <footer className="py-12 text-center opacity-40 text-[10px] font-black uppercase tracking-widest">
+      <footer className="py-12 text-center text-slate-400 text-sm font-medium">
         &copy; 2025 MyHairCut Morocco • Powered by Riyaz Innovation
       </footer>
     </div>
