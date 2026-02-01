@@ -34,6 +34,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allMembers, bookings, o
     onUpdateMember({ ...member, isActive: !member.isActive });
   };
 
+  const handleDeleteClick = (id: string) => {
+    // Confirmation supplémentaire pour l'admin
+    if (confirm("Êtes-vous certain de vouloir supprimer définitivement cet utilisateur et toutes ses données ?")) {
+      onDeleteMember(id);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-12">
@@ -71,7 +78,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allMembers, bookings, o
             <h2 className="text-xl font-black text-slate-900 uppercase">Communauté</h2>
             <input 
               type="text" 
-              placeholder="Nom ou Email..." 
+              placeholder="Chercher un membre..." 
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               className="w-full md:w-64 glass bg-white/50 border border-white/60 rounded-xl px-4 py-2 font-bold text-sm outline-none"
@@ -106,8 +113,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allMembers, bookings, o
                       <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase ${member.isActive !== false ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>{member.isActive !== false ? 'Actif' : 'Suspendu'}</span>
                     </td>
                     <td className="px-8 py-6 text-right space-x-2">
-                      <button onClick={() => toggleMemberStatus(member)} className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 hover:scale-110 transition"><i className={`fas ${member.isActive !== false ? 'fa-user-slash' : 'fa-user-check'}`}></i></button>
-                      <button onClick={() => onDeleteMember(member.id)} className="w-8 h-8 rounded-lg bg-red-100 text-red-600 hover:scale-110 transition"><i className="fas fa-trash-alt"></i></button>
+                      <button title="Changer statut" onClick={() => toggleMemberStatus(member)} className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 hover:scale-110 transition"><i className={`fas ${member.isActive !== false ? 'fa-user-slash' : 'fa-user-check'}`}></i></button>
+                      <button title="Supprimer définitivement" onClick={() => handleDeleteClick(member.id)} className="w-8 h-8 rounded-lg bg-red-100 text-red-600 hover:scale-110 transition"><i className="fas fa-trash-alt"></i></button>
                     </td>
                   </tr>
                 ))}
@@ -118,17 +125,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allMembers, bookings, o
       ) : (
         <div className="glass rounded-[3rem] border-white/60 shadow-2xl overflow-hidden animate-fadeIn">
           <div className="p-8 border-b border-white/20">
-            <h2 className="text-xl font-black text-slate-900 uppercase">Flux de Réservations Global</h2>
+            <h2 className="text-xl font-black text-slate-900 uppercase">Historique complet des RDV</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-slate-50/50">
                 <tr>
-                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase">Date</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase">Date & Heure</th>
                   <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase">Client</th>
                   <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase">Expert</th>
                   <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase">Service</th>
                   <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase text-right">Montant</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/20">
@@ -138,10 +146,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allMembers, bookings, o
                   return (
                     <tr key={bk.id} className="hover:bg-white/40 transition">
                       <td className="px-8 py-6 text-xs font-bold text-slate-500">{new Date(bk.date).toLocaleString('fr-FR')}</td>
-                      <td className="px-8 py-6 font-black text-slate-900 text-sm">{bk.clientName || client?.name || 'Visiteur'}</td>
+                      <td className="px-8 py-6">
+                        <p className="font-black text-slate-900 text-sm">{bk.clientName || client?.name || 'Visiteur'}</p>
+                        <p className="text-[9px] text-slate-400 uppercase">{client?.email || 'N/A'}</p>
+                      </td>
                       <td className="px-8 py-6 font-bold text-violet-600 text-sm">{barber?.name || 'Inconnu'}</td>
                       <td className="px-8 py-6"><span className="bg-slate-100 px-3 py-1 rounded-lg text-[10px] font-black uppercase text-slate-600">{bk.serviceName}</span></td>
                       <td className="px-8 py-6 text-right font-black text-slate-900">{bk.totalPrice} DH</td>
+                      <td className="px-8 py-6 text-center">
+                        <span className={`px-2 py-1 rounded-md text-[8px] font-black uppercase ${
+                          bk.status === BookingStatus.COMPLETED ? 'bg-green-100 text-green-600' :
+                          bk.status === BookingStatus.CANCELLED ? 'bg-red-100 text-red-600' :
+                          'bg-amber-100 text-amber-600'
+                        }`}>{bk.status}</span>
+                      </td>
                     </tr>
                   );
                 })}
